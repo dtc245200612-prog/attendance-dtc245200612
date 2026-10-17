@@ -1,0 +1,36 @@
+services:
+  app:
+    image: node:22-bookworm-slim
+    user: "${LOCAL_UID:?LOCAL_UID required}:${LOCAL_GID:?LOCAL_GID required}"
+    working_dir: /app
+    command: npm run dev -- --hostname 0.0.0.0
+    environment:
+      HOME: /tmp
+      npm_config_cache: /tmp/npm-cache
+      NEXT_TELEMETRY_DISABLED: "1"
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_NAME: attendance
+      DB_USER: attendance_app
+      DB_PASSWORD_FILE: /run/secrets/mysql_app_password
+      TZ: UTC
+    ports:
+      - "127.0.0.1:3001:3000"
+    volumes:
+      - .:/app
+    secrets:
+      - mysql_app_password
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - backend
+      - web
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 2g
+
+networks:
+  web:
