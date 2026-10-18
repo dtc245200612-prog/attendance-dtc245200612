@@ -156,3 +156,31 @@ Cấu hình hiện tại phục vụ development trên localhost, chưa phải b
 - Backend kiểm tra chủ sở hữu phân ca và ngăn thao tác trùng.
 - Thời gian lưu theo UTC, giao diện hiển thị giờ Việt Nam.
 - Dữ liệu được lưu trong MySQL, kiểm tra qua phpMyAdmin.
+
+## Nginx reverse proxy — mốc commit 1 của đề
+
+Luồng truy cập: trình duyệt → Nginx:8088 → app:3000 → MySQL.
+
+Khởi động:
+    docker compose -f compose.yaml -f compose.dev.yaml -f compose.nginx.yaml up -d
+
+Website: http://localhost:8088/login
+phpMyAdmin: http://localhost:8081
+
+Khi chạy cùng Nginx, dùng website qua cổng 8088.
+APP_ORIGIN được đặt thành http://localhost:8088.
+Mục Nginx trong danh sách chưa hoàn thành phía trên đã được hoàn thành.
+
+Kiểm tra:
+    docker compose -f compose.yaml -f compose.dev.yaml -f compose.nginx.yaml exec nginx nginx -t
+    curl -I http://localhost:8088/login
+
+Security headers: X-Content-Type-Options, X-Frame-Options,
+Referrer-Policy và Permissions-Policy.
+Hiện dùng HTTP localhost với security headers, chưa có HTTPS.
+
+Nginx chạy non-root, filesystem chỉ đọc, bỏ capabilities
+và chỉ tham gia mạng web.
+
+Dừng và giữ dữ liệu:
+    docker compose -f compose.yaml -f compose.dev.yaml -f compose.nginx.yaml stop
