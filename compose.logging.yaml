@@ -1,0 +1,52 @@
+services:
+  loki:
+    image: grafana/loki@sha256:1107dd5274e0ada47e42472b7a7e71f3b2a2fe878878108f3e2f9e51528f0193
+    restart: unless-stopped
+    command:
+      - -config.file=/etc/loki/loki.yaml
+    ports:
+      - "127.0.0.1:3100:3100"
+    volumes:
+      - ./infra/loki/loki.yaml:/etc/loki/loki.yaml:ro
+      - loki_data:/loki
+    networks:
+      - monitoring
+      - monitoring_access
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 768m
+
+  promtail:
+    image: grafana/promtail:3.5.0
+    user: "0:0"
+    restart: unless-stopped
+    command:
+      - -config.file=/etc/promtail/promtail.yaml
+    volumes:
+      - ./infra/promtail:/etc/promtail:ro
+      - docker_container_logs:/var/lib/docker/containers:ro
+      - promtail_positions:/positions
+    networks:
+      - monitoring
+    depends_on:
+      - loki
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 256m
+
+volumes:
+  loki_data:
+  promtail_positions:
+  docker_container_logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind,ro
+      device: /var/lib/docker/containers

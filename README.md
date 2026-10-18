@@ -264,3 +264,61 @@ Không dùng down -v nếu cần giữ dữ liệu.
 
 Trạng thái tiến độ: mục Prometheus và Grafana trong danh sách
 chưa hoàn thành phía trên đã được hoàn thành.
+
+## Logging — mốc commit 3 của đề
+
+Đã triển khai Loki, Promtail và datasource Loki trong Grafana.
+Ba truy vấn có kết quả được ghi tại docs/logql.md.
+
+Luồng log:
+app/Nginx stdout và stderr → Docker json-file → Promtail → Loki → Grafana.
+
+Bổ sung compose.logging.yaml vào cuối COMPOSE_FILE trong .env.
+Giá trị đầy đủ:
+COMPOSE_FILE=compose.yaml:compose.dev.yaml:compose.nginx.yaml:compose.monitoring.yaml:compose.cadvisor.yaml:compose.grafana.yaml:compose.logging.yaml
+
+Thứ tự khởi động logging lần đầu:
+1. Tạo đầy đủ file cấu hình trong repository.
+2. Khởi động app và Nginx cùng các dependency.
+3. Chạy bash scripts/update-log-targets.sh.
+4. Chạy docker compose up -d loki promtail.
+5. Restart Grafana để nạp datasource: docker compose restart grafana.
+
+Kiểm tra Loki:
+    curl -i http://127.0.0.1:3100/ready
+
+Kết quả cần HTTP 200 và ready.
+Loki có thể trả 503 trong thời gian khởi tạo ban đầu.
+
+Xem log tại:
+http://127.0.0.1:3002/explore
+Chọn datasource Loki, chế độ Code, nhập truy vấn trong docs/logql.md.
+
+Promtail đọc log json-file của app và Nginx từ Docker Desktop
+qua local bind volume chỉ đọc, không dùng Docker socket.
+Promtail chạy root để đọc log do Docker sở hữu, bỏ capabilities,
+bật no-new-privileges và không publish cổng ra host.
+
+Loki lưu log trong volume loki_data, retention 72 giờ qua compactor.
+Positions của Promtail được lưu riêng trong volume promtail_positions.
+Image Loki được cố định theo digest đã kiểm tra.
+Promtail dùng phiên bản 3.5.0.
+
+Sau khi app hoặc Nginx được tạo lại, ID container có thể đổi.
+Bắt buộc cập nhật targets:
+    bash scripts/update-log-targets.sh
+
+Promtail tự đọc lại targets; không cần restart.
+File targets.json được sinh cục bộ, không commit vào Git.
+
+Promtail đã hết hỗ trợ ngày 02/03/2026.
+Bản lab dùng Promtail theo yêu cầu đề bài.
+Triển khai lâu dài cần chuyển sang Grafana Alloy.
+
+Loki không bật xác thực; cổng chỉ bind 127.0.0.1.
+Không ghi mật khẩu, token hoặc cookie vào log.
+Retention Loki không thay thế rotation log file nguồn của Docker;
+rotation sẽ được kiểm tra trong bước hardening.
+
+Trạng thái tiến độ: mục Loki, Promtail và LogQL trong danh sách
+chưa hoàn thành phía trên đã được hoàn thành.
