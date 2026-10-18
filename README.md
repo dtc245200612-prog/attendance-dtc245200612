@@ -184,3 +184,83 @@ và chỉ tham gia mạng web.
 
 Dừng và giữ dữ liệu:
     docker compose -f compose.yaml -f compose.dev.yaml -f compose.nginx.yaml stop
+
+## Monitoring — mốc commit 2 của đề
+
+Đã triển khai giám sát container, Nginx và MySQL bằng
+Prometheus, cAdvisor, Nginx exporter, MySQL exporter và Grafana.
+
+Grafana được provision datasource và dashboard từ file trong Git.
+
+Các file Compose sử dụng:
+- compose.yaml
+- compose.dev.yaml
+- compose.nginx.yaml
+- compose.monitoring.yaml
+- compose.cadvisor.yaml
+- compose.grafana.yaml
+
+Bổ sung dòng sau vào .env, giữ nguyên LOCAL_UID và LOCAL_GID:
+COMPOSE_FILE=compose.yaml:compose.dev.yaml:compose.nginx.yaml:compose.monitoring.yaml:compose.cadvisor.yaml:compose.grafana.yaml
+
+Chuẩn bị MySQL exporter:
+    bash scripts/setup-mysql-exporter.sh
+
+Script tạo tài khoản giám sát và file credentials trong secrets/.
+Chạy khi MySQL đã healthy, trước khi khởi động exporter.
+Tài khoản exporter không có quyền ghi dữ liệu ứng dụng.
+
+Chuẩn bị mật khẩu Grafana:
+    openssl rand -hex 24
+
+Lưu kết quả thành GRAFANA_ADMIN_PASSWORD trong .env.
+Không commit mật khẩu. Biến này thiết lập mật khẩu admin khi
+Grafana khởi tạo database lần đầu, không tự đổi mật khẩu đã có.
+
+Cài dependencies ứng dụng bằng npm ci theo hướng dẫn phía trên,
+rồi sinh dashboard:
+    docker compose run --rm --no-deps app node scripts/generate-monitoring-dashboard.cjs
+
+Khởi động toàn bộ hệ thống:
+    docker compose up -d
+
+Truy cập:
+- Website: http://localhost:8088/login
+- phpMyAdmin: http://localhost:8081
+- Prometheus: http://localhost:9090
+- Grafana: http://127.0.0.1:3002
+- Dashboard: http://127.0.0.1:3002/d/attendance-overview
+
+Tài khoản Grafana: admin.
+Mật khẩu lấy từ GRAFANA_ADMIN_PASSWORD đã cấu hình trong .env.
+
+Kiểm tra trên Prometheus:
+- up: các job prometheus, nginx, mysql, cadvisor phải bằng 1.
+- nginx_up: bằng 1.
+- mysql_up: bằng 1.
+- container_memory_working_set_bytes: có dữ liệu container dự án.
+- rate(container_cpu_usage_seconds_total[5m]): có dữ liệu CPU.
+
+Dashboard gồm:
+- Trạng thái Nginx và MySQL.
+- CPU và RAM theo service.
+- Nginx requests/giây và active connections.
+- MySQL connections và client statements/giây.
+
+Prometheus giữ dữ liệu tối đa 7 ngày hoặc khoảng 1GB.
+Prometheus và Grafana dùng named volumes để lưu dữ liệu.
+Image Prometheus và Grafana được cố định theo digest đã kiểm tra.
+
+cAdvisor là ngoại lệ hardening: cần privileged và quyền đọc
+filesystem/cgroup/socket của Docker Desktop để thu thập metrics.
+Các mount được đặt read-only; socket read-only vẫn cho phép
+gọi API, nên collector này phải được coi là thành phần tin cậy.
+Không publish cổng cAdvisor hoặc exporter ra host.
+
+Dừng hệ thống, giữ dữ liệu:
+    docker compose stop
+
+Không dùng down -v nếu cần giữ dữ liệu.
+
+Trạng thái tiến độ: mục Prometheus và Grafana trong danh sách
+chưa hoàn thành phía trên đã được hoàn thành.

@@ -1,0 +1,65 @@
+services:
+  cadvisor:
+    image: ghcr.io/google/cadvisor:0.55.1
+    restart: unless-stopped
+    privileged: true
+    cgroup: host
+    command:
+      - --docker_only=true
+      - --housekeeping_interval=15s
+      - --store_container_labels=true
+    volumes:
+      - cadvisor_host_root:/rootfs:ro
+      - cadvisor_host_proc:/rootfs/proc:ro
+      - cadvisor_host_run:/run:ro
+      - cadvisor_host_sys:/sys:ro
+      - cadvisor_host_cgroup:/sys/fs/cgroup:ro
+      - cadvisor_host_docker:/var/lib/docker:ro
+      - cadvisor_host_docker:/rootfs/var/lib/docker:ro
+      - /var/run/docker.sock:/run/docker.sock:ro
+    networks:
+      - monitoring
+    mem_limit: 512m
+
+volumes:
+  cadvisor_host_root:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind,ro
+      device: /
+
+  cadvisor_host_run:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind,ro
+      device: /run
+
+  cadvisor_host_sys:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind,ro
+      device: /sys
+
+  cadvisor_host_docker:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind,ro
+      device: /var/lib/docker
+
+  cadvisor_host_cgroup:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind,ro
+      device: /sys/fs/cgroup
+
+  cadvisor_host_proc:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind,ro
+      device: /proc

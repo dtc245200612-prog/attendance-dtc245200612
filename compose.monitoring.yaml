@@ -1,0 +1,77 @@
+services:
+  nginx:
+    networks:
+      - web
+      - monitoring
+
+  nginx-exporter:
+    image: nginx/nginx-prometheus-exporter:1.5.1
+    command:
+      - --nginx.scrape-uri=http://nginx:8081/stub_status
+    restart: unless-stopped
+    depends_on:
+      - nginx
+    networks:
+      - monitoring
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 64m
+
+  mysqld-exporter:
+    image: prom/mysqld-exporter:v0.17.2
+    user: "${LOCAL_UID:?LOCAL_UID required}:${LOCAL_GID:?LOCAL_GID required}"
+    command:
+      - --config.my-cnf=/run/secrets/mysql_exporter_config
+      - --mysqld.address=mysql:3306
+    restart: unless-stopped
+    secrets:
+      - mysql_exporter_config
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - backend
+      - monitoring
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 128m
+
+  prometheus:
+    image: prom/prometheus@sha256:efd719c99d83b060d9daefdcf00360461adf279f45ef5391f8d111892118753e
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=7d
+      - --storage.tsdb.retention.size=1GB
+    ports:
+      - "127.0.0.1:9090:9090"
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - monitoring
+      - monitoring_access
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
+
+networks:
+  monitoring:
+    internal: true
+  monitoring_access: {}
+
+volumes:
+  prometheus_data:
+
+secrets:
+  mysql_exporter_config:
+    file: ./secrets/mysql_exporter.cnf
