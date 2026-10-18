@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import LogoutButton from "./logout-button";
@@ -28,11 +29,32 @@ async function DashboardContent() {
         <h2 className="font-semibold">
           {user.role === "ADMIN" ? "Khu vực quản trị" : "Khu vực nhân viên"}
         </h2>
-        <p className="mt-2 text-sm text-slate-600">
-          {user.role === "ADMIN"
-            ? "Quản lý nhân viên, phân ca và theo dõi lịch sử điểm danh."
-            : "Xem ca được phân, check-in, check-out và lịch sử cá nhân."}
-        </p>
+
+        <nav className="mt-4 flex flex-wrap gap-3">
+          {user.role === "ADMIN" && (
+            <>
+              <Link
+                href="/dashboard/shifts"
+                className="rounded-lg bg-blue-600 px-4 py-3 text-white"
+              >
+                Tạo ca / Quản lý ca
+              </Link>
+              <Link
+                href="/dashboard/assignments"
+                className="rounded-lg bg-blue-600 px-4 py-3 text-white"
+              >
+                Phân ca nhân viên
+              </Link>
+            </>
+          )}
+
+          <Link
+            href="/dashboard/attendance"
+            className="rounded-lg bg-slate-800 px-4 py-3 text-white"
+          >
+            Điểm danh / Lịch sử cá nhân
+          </Link>
+        </nav>
       </div>
     </section>
   );

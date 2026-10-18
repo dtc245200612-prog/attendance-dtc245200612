@@ -11,6 +11,7 @@ Next.js, React, TypeScript, MySQL 8.4, phpMyAdmin và Docker Compose.
 ## Tiến độ
 
 Đã triển khai:
+- Check-in/check-out và lịch sử điểm danh cá nhân.
 - Kết nối Next.js với MySQL.
 - Tài khoản ADMIN và EMPLOYEE, mật khẩu hash bằng bcrypt.
 - Session lưu trong MySQL, đăng nhập và đăng xuất.
@@ -18,7 +19,6 @@ Next.js, React, TypeScript, MySQL 8.4, phpMyAdmin và Docker Compose.
 - Kiểm tra ca chồng nhau, hỗ trợ ca qua đêm.
 
 Chưa hoàn thành:
-- Check-in/check-out và lịch sử điểm danh.
 - Nginx reverse proxy.
 - Prometheus và Grafana.
 - Loki, Promtail và LogQL.
@@ -145,3 +145,14 @@ Không dùng `docker compose down -v` nếu cần giữ dữ liệu MySQL.
 - API quản trị kiểm tra quyền ADMIN tại backend.
 
 Cấu hình hiện tại phục vụ development trên localhost, chưa phải bản production.
+
+## Điểm danh nhân viên
+
+- Trang điểm danh: http://localhost:3001/dashboard/attendance
+- ADMIN tạo mẫu ca và phân ca cho nhân viên theo ngày.
+- EMPLOYEE đăng nhập để xem ca và điểm danh.
+- Check-in từ 30 phút trước giờ bắt đầu đến trước khi ca kết thúc.
+- Check-out sau check-in, tối đa 4 giờ sau khi ca kết thúc.
+- Backend kiểm tra chủ sở hữu phân ca và ngăn thao tác trùng.
+- Thời gian lưu theo UTC, giao diện hiển thị giờ Việt Nam.
+- Dữ liệu được lưu trong MySQL, kiểm tra qua phpMyAdmin.
