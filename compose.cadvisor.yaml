@@ -8,6 +8,7 @@ services:
       - --docker_only=true
       - --housekeeping_interval=15s
       - --store_container_labels=true
+      - --disable_metrics=disk,diskIO
     volumes:
       - cadvisor_host_root:/rootfs:ro
       - cadvisor_host_proc:/rootfs/proc:ro
@@ -15,7 +16,6 @@ services:
       - cadvisor_host_sys:/sys:ro
       - cadvisor_host_cgroup:/sys/fs/cgroup:ro
       - cadvisor_host_docker:/var/lib/docker:ro
-      - cadvisor_host_docker:/rootfs/var/lib/docker:ro
       - /var/run/docker.sock:/run/docker.sock:ro
     networks:
       - monitoring

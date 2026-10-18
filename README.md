@@ -322,3 +322,64 @@ rotation sẽ được kiểm tra trong bước hardening.
 
 Trạng thái tiến độ: mục Loki, Promtail và LogQL trong danh sách
 chưa hoàn thành phía trên đã được hoàn thành.
+
+## Hardening — phần 6
+
+Đã kiểm tra các biện pháp:
+- App chạy UID/GID người dùng Ubuntu, Nginx chạy 101:101.
+- App và Nginx bỏ toàn bộ Linux capabilities.
+- Bật no-new-privileges cho app và Nginx.
+- Filesystem Nginx chỉ đọc; /tmp dùng tmpfs.
+- Mạng backend internal, MySQL không publish cổng ra host.
+- Các cổng giao diện chỉ bind 127.0.0.1.
+- Secrets và .env không được Git theo dõi.
+- Mật khẩu tài khoản được hash, session token được hash trong DB.
+- Nginx có security headers.
+- Tài khoản attendance_app chỉ có SELECT, INSERT, UPDATE, DELETE
+  trên database attendance.
+- Docker log rotation: max-size 10m, max-file 3 cho mỗi container.
+
+Bổ sung compose.hardening.yaml vào cuối COMPOSE_FILE trong .env.
+Giá trị đầy đủ:
+COMPOSE_FILE=compose.yaml:compose.dev.yaml:compose.nginx.yaml:compose.monitoring.yaml:compose.cadvisor.yaml:compose.grafana.yaml:compose.logging.yaml:compose.hardening.yaml
+
+Áp dụng quyền runtime sau khi đã tạo schema:
+    docker compose exec -T mysql sh -c 'export MYSQL_PWD="$(cat /run/secrets/mysql_root_password)"; exec mysql --protocol=SOCKET -u root' < infra/mysql/003_runtime_privileges.sql
+
+Sau khi giới hạn quyền, không dùng attendance_app để tạo hoặc sửa bảng.
+Các thay đổi schema cần tài khoản quản trị hoặc migration riêng.
+Nạp lại schema trên database hiện có bằng tài khoản ứng dụng sẽ bị từ chối.
+
+Khởi động:
+    docker compose up -d
+
+Sau khi app/Nginx được tạo lại:
+    bash scripts/update-log-targets.sh
+    docker compose restart nginx
+
+Kiểm tra website:
+    curl -i http://localhost:8088/api/health/ready
+
+Kiểm tra log mới:
+    curl -s -o /dev/null -w 'HTTP %{http_code}\n' http://localhost:8088/hardening-log-check
+
+LogQL:
+    {job="docker", service="nginx"} |= "/hardening-log-check"
+
+Kiểm tra Grafana: Nginx/MySQL UP bằng 1, CPU/RAM có dữ liệu mới.
+
+cAdvisor dùng local bind volumes để đọc filesystem thực của
+Docker Desktop, có mount riêng cho proc và cgroup.
+Đã tắt metrics disk và diskIO; dashboard sử dụng CPU/RAM container.
+cAdvisor vẫn là ngoại lệ privileged, chỉ dành cho collector tin cậy.
+Promtail chạy root để đọc log, không privileged và không có Docker socket.
+
+Giới hạn bản lab:
+- App vẫn chạy Next.js development với mã nguồn bind mount.
+- HTTP localhost có security headers, chưa cấu hình HTTPS.
+- Promtail đã hết hỗ trợ; dùng theo đề bài.
+- Chưa xác nhận đổi các mật khẩu demo từng xuất hiện trong ảnh.
+- Bản lab chưa được xem là triển khai production.
+
+Mục hardening trong danh sách chưa hoàn thành phía trên
+đã được triển khai và kiểm tra ở phạm vi lab nêu trên.

@@ -1,0 +1,29 @@
+x-log-policy: &log-policy
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  app:
+    logging: *log-policy
+  mysql:
+    logging: *log-policy
+  phpmyadmin:
+    logging: *log-policy
+  nginx:
+    logging: *log-policy
+  prometheus:
+    logging: *log-policy
+  grafana:
+    logging: *log-policy
+  nginx-exporter:
+    logging: *log-policy
+  mysqld-exporter:
+    logging: *log-policy
+  cadvisor:
+    logging: *log-policy
+  loki:
+    logging: *log-policy
+  promtail:
+    logging: *log-policy
