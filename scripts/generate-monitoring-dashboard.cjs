@@ -1,7 +1,7 @@
 const fs = require("node:fs");
 const datasource = { type: "prometheus", uid: "prometheus" };
 const label = "container_label_com_docker_compose_service";
-const filter = 'job="cadvisor",container_label_com_docker_compose_project="attendance-dtc245200612"';
+const filter = 'job="cadvisor",container_label_com_docker_compose_project="attendance-dtc245200612"'.replace("attendance-dtc245200612", process.env.DASHBOARD_COMPOSE_PROJECT || "attendance-dtc245200612");
 
 const definitions = [
   ["Nginx UP", 'nginx_up{job="nginx"}', "none", "stat"],

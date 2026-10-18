@@ -383,3 +383,41 @@ Giới hạn bản lab:
 
 Mục hardening trong danh sách chưa hoàn thành phía trên
 đã được triển khai và kiểm tra ở phạm vi lab nêu trên.
+
+## Kiểm tra dựng từ bản clone riêng
+
+Đã kiểm tra:
+- npm ci cài được dependencies từ lockfile.
+- Khởi tạo database mới với đủ 6 bảng và seed tài khoản.
+- Website qua Nginx trả HTTP 200, kết nối MySQL thành công.
+- Grafana có dữ liệu Nginx và MySQL.
+- cAdvisor thu metrics của 11 service thuộc project kiểm tra.
+- Request thử nghiệm 404 xuất hiện trong Loki.
+- Đã chuyển lại bản chính, health check trả HTTP 200.
+
+Bản kiểm tra dùng COMPOSE_PROJECT_NAME riêng và mật khẩu mới.
+Cần dừng bản chính trước khi chạy bản kiểm tra vì dùng cùng cổng host.
+
+Dashboard hỗ trợ tên project tùy chọn khi sinh file:
+    docker compose exec -e DASHBOARD_COMPOSE_PROJECT=attendance-verify-dtc245200612 app node scripts/generate-monitoring-dashboard.cjs
+
+Nếu không truyền biến, mặc định là attendance-dtc245200612.
+
+Khi khởi tạo mới, phải đợi MySQL healthy trước khi nạp schema.
+Nạp 001_schema.sql và 002_sessions.sql bằng tài khoản quản trị.
+Chạy seed, sau đó áp dụng 003_runtime_privileges.sql.
+Tạo targets log sau khi app và Nginx đã chạy, trước khi bật Promtail.
+
+## Kết quả kiểm tra dependencies ngày 18/10/2026
+
+npm audit báo 5 mục High liên quan đến chuỗi dependency
+development của ESLint, xuất phát từ braces:
+GHSA-vfj7-8cjw-p6xm.
+
+npm audit --omit=dev trả found 0 vulnerabilities tại thời điểm kiểm tra.
+Điều này không chứng minh toàn bộ hệ thống không có lỗ hổng.
+Bản lab vẫn dùng next dev nên không bỏ qua rủi ro development dependencies.
+
+Không áp dụng npm audit fix --force vì đề xuất hạ
+eslint-config-next xuống phiên bản major khác.
+Advisory được kiểm tra khi đó chưa có bản vá.
